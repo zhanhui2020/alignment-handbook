@@ -15,6 +15,11 @@
 # limitations under the License.
 """
 Supervised fine-tuning script for decoder language models.
+
+peter wu
+2023-12-22
+
+使用了transformers中的SFTTrainer进行模型微调
 """
 
 import logging
@@ -46,17 +51,21 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+
+    # 解析参数配置文件等
     parser = H4ArgumentParser((ModelArguments, DataArguments, SFTConfig))
     model_args, data_args, training_args = parser.parse()
 
     # Set seed for reproducibility
     set_seed(training_args.seed)
 
+    # 声明一个accelerator进行分布式训练使用
     accelerator = Accelerator()
 
     ###############
     # Setup logging
     ###############
+    # 设置日志相关的内容
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",

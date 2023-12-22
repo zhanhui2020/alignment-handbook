@@ -26,17 +26,17 @@ from peft import LoraConfig, PeftConfig
 from .configs import DataArguments, ModelArguments
 from .data import DEFAULT_CHAT_TEMPLATE
 
-
+# 获取当前设备的进程号
 def get_current_device() -> int:
     """Get the current device. For GPU we return the local process index to enable multiple GPU training."""
     return Accelerator().local_process_index if torch.cuda.is_available() else "cpu"
 
-
+# 获取当前量化使用的设备
 def get_kbit_device_map() -> Dict[str, int] | None:
     """Useful for running inference with quantized models by setting `device_map=get_peft_device_map()`"""
     return {"": get_current_device()} if torch.cuda.is_available() else None
 
-
+# 加载量化的配置
 def get_quantization_config(model_args) -> BitsAndBytesConfig | None:
     if model_args.load_in_4bit:
         quantization_config = BitsAndBytesConfig(
@@ -54,7 +54,7 @@ def get_quantization_config(model_args) -> BitsAndBytesConfig | None:
 
     return quantization_config
 
-
+# 加载tokenizer
 def get_tokenizer(model_args: ModelArguments, data_args: DataArguments) -> PreTrainedTokenizer:
     """Get the tokenizer for the model."""
     tokenizer = AutoTokenizer.from_pretrained(
@@ -78,11 +78,13 @@ def get_tokenizer(model_args: ModelArguments, data_args: DataArguments) -> PreTr
 
     return tokenizer
 
-
+# 获取peft模式下的配置文件
 def get_peft_config(model_args: ModelArguments) -> PeftConfig | None:
+    # 如果没有使用peft，直接返回None
     if model_args.use_peft is False:
         return None
 
+    # 定义lora的config，并且返回
     peft_config = LoraConfig(
         r=model_args.lora_r,
         lora_alpha=model_args.lora_alpha,

@@ -26,10 +26,13 @@ MODEL_CONFIG_CLASSES = list(MODEL_FOR_CAUSAL_LM_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 
 
+# 定义一个数据类型，能够代表各种数据类型
 DataClassType = NewType("DataClassType", Any)
 
 
+# 解析命令行参数以及配置文件的主要类
 class H4ArgumentParser(HfArgumentParser):
+    # 首先加载配置文件的参数，然后使用后续的命令行参数进行覆盖原有的配置文件
     def parse_yaml_and_args(self, yaml_arg: str, other_args: Optional[List[str]] = None) -> List[dataclass]:
         """
         Parse a YAML file and overwrite the default/loaded values with the values provided to the command line.
@@ -43,15 +46,20 @@ class H4ArgumentParser(HfArgumentParser):
         Returns:
             [`List[dataclass]`]: a list of dataclasses with the values from the YAML file and the command line
         """
+        # 加载yaml配置文件
         arg_list = self.parse_yaml_file(os.path.abspath(yaml_arg))
 
         outputs = []
+
         # strip other args list into dict of key-value pairs
+        # 加载命令行中的参数
         other_args = {arg.split("=")[0].strip("-"): arg.split("=")[1] for arg in other_args}
         used_args = {}
 
         # overwrite the default/loaded value with the value provided to the command line
         # adapted from https://github.com/huggingface/transformers/blob/d0b5002378daabf62769159add3e7d66d3f83c3b/src/transformers/hf_argparser.py#L327
+        # 在parse yaml时候分成了3个不同的片段，每个片段是一个yaml datatype类型
+        # 其中dataclass_types是H4ArgumentParser初始化的时候传入的
         for data_yaml, data_class in zip(arg_list, self.dataclass_types):
             keys = {f.name for f in dataclasses.fields(data_yaml) if f.init}
             inputs = {k: v for k, v in vars(data_yaml).items() if k in keys}
@@ -86,15 +94,19 @@ class H4ArgumentParser(HfArgumentParser):
 
         return outputs
 
+    # 解析参数
     def parse(self) -> DataClassType | Tuple[DataClassType]:
+        # 第一种方式：run.py xxx.yaml，加载yaml文件
         if len(sys.argv) == 2 and sys.argv[1].endswith(".yaml"):
             # If we pass only one argument to the script and it's the path to a YAML file,
             # let's parse it to get our arguments.
             output = self.parse_yaml_file(os.path.abspath(sys.argv[1]))
         # parse command line args and yaml file
+        # 第二种方式：run.py xxx.yaml args2 args3，同时加载命令行以及文件参数
         elif len(sys.argv) > 2 and sys.argv[1].endswith(".yaml"):
             output = self.parse_yaml_and_args(os.path.abspath(sys.argv[1]), sys.argv[2:])
         # parse command line args only
+        # 第三种方式：只从命令行参数中进行加载
         else:
             output = self.parse_args_into_dataclasses()
 
@@ -103,16 +115,19 @@ class H4ArgumentParser(HfArgumentParser):
         return output
 
 
+# Model参数类型定义
 @dataclass
 class ModelArguments:
     """
     Arguments pertaining to which model/config/tokenizer we are going to fine-tune.
     """
-
+    # base model的地址，当使用lora等方式训练的时候需要配置
     base_model_revision: Optional[str] = field(
         default=None,
         metadata={"help": ("The base model checkpoint for weights initialization with PEFT adatpers.")},
     )
+
+    # 加载相关的模型初始化模型，如果想从头训练模型，就无需设置
     model_name_or_path: Optional[str] = field(
         default=None,
         metadata={
@@ -121,11 +136,17 @@ class ModelArguments:
             )
         },
     )
+
+    # model 的revision的版本号
     model_revision: str = field(
         default="main",
         metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},
     )
+
+    # model code的revision
     model_code_revision: str = field(default=None, metadata={"help": "The branch of the IFT model"})
+
+    # torch的数据类型定义
     torch_dtype: Optional[str] = field(
         default=None,
         metadata={
@@ -136,7 +157,11 @@ class ModelArguments:
             "choices": ["auto", "bfloat16", "float16", "float32"],
         },
     )
+
+    # 从huggingface进行加载模型的时候，需要使用这个code
     trust_remote_code: bool = field(default=False, metadata={"help": "Trust remote code when loading a model."})
+
+    # 是否使用flash attention2
     use_flash_attention_2: bool = field(
         default=False,
         metadata={
@@ -145,10 +170,14 @@ class ModelArguments:
             )
         },
     )
+
+    # 是否使用PEFT模型
     use_peft: bool = field(
         default=False,
         metadata={"help": ("Whether to use PEFT or not for training.")},
     )
+
+    # lora的相关配置
     lora_r: Optional[int] = field(
         default=16,
         metadata={"help": ("LoRA R value.")},
@@ -169,6 +198,8 @@ class ModelArguments:
         default=None,
         metadata={"help": ("Model layers to unfreeze & train")},
     )
+
+    # 模型加载的量化判断
     load_in_8bit: bool = field(default=False, metadata={"help": "use 8 bit precision"})
     load_in_4bit: bool = field(default=False, metadata={"help": "use 4 bit precision"})
 
@@ -177,26 +208,35 @@ class ModelArguments:
     )
     use_bnb_nested_quant: bool = field(default=False, metadata={"help": "use nested quantization"})
 
+    # 在初始化之后，执行这段逻辑
     def __post_init__(self):
         if self.load_in_8bit and self.load_in_4bit:
             raise ValueError("You can't use 8 bit and 4 bit precision at the same time")
 
 
+# Data参数类型定义
 @dataclass
 class DataArguments:
     """
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
 
+    # 定义chat template
     chat_template: Optional[str] = field(default=None, metadata={"help": "The chat template to use."})
+    
+    # dataset mixer，是一个词典的格式，filename-ratio
     dataset_mixer: Optional[Dict[str, float]] = field(
         default=None,
         metadata={"help": ("Datasets and their proportions to be used for training ift/rl.")},
     )
+
+    # dataset splits的定义
     dataset_splits: Optional[List[str]] = field(
         default_factory=lambda: ["train", "test"],
         metadata={"help": ("List of train test splits to use in the dataset")},
     )
+
+    # 最大的训练样本数目
     max_train_samples: Optional[int] = field(
         default=None,
         metadata={
@@ -206,6 +246,8 @@ class DataArguments:
             )
         },
     )
+
+    # 最大的eval样本数量
     max_eval_samples: Optional[int] = field(
         default=None,
         metadata={
@@ -215,15 +257,20 @@ class DataArguments:
             )
         },
     )
+
+    # 前处理的进程数目
     preprocessing_num_workers: Optional[int] = field(
         default=None,
         metadata={"help": "The number of processes to use for the preprocessing."},
     )
+
+    # 用于tokenizer
     truncation_side: Optional[str] = field(
         default=None, metadata={"help": "Truncation side to use for the tokenizer."}
     )
 
 
+# SFT阶段的配置文件，注意这里继承了transformers.TrainingArguments这个类
 @dataclass
 class SFTConfig(transformers.TrainingArguments):
     """
@@ -241,31 +288,45 @@ class SFTConfig(transformers.TrainingArguments):
     optim: Optional[str] = field(default="adamw_torch")
 
 
+# DPO的训练相关参数的定义
 @dataclass
 class DPOConfig(transformers.TrainingArguments):
     """
     Arguments related to the DPO training process itself. For all parameters, see: https://huggingface.co/docs/transformers/v4.26.1/en/main_classes/trainer#transformers.TrainingArguments
     """
 
+    # dpo中的损失函数中的beta定义
     beta: Optional[float] = field(
         default=0.1,
         metadata={"help": "The beta factor in DPO loss. Higher beta means less divergence from the initial policy."},
     )
+
+    # huggingface中的模型库id或者名称
     hub_model_revision: Optional[str] = field(
         default="main",
         metadata={"help": ("The Hub model branch to push the model to.")},
     )
+
+    # 是否记录以及评测第一步
     logging_first_step: bool = field(
         default=True,
         metadata={"help": ("Whether to log and evaluate the first global_step or not.")},
     )
+
+    # 最长的prompt length
     max_prompt_length: Optional[int] = field(
         default=None,
         metadata={"help": ("For DPO, the maximum length of the prompt to use for conditioning the model.")},
     )
+
+    # 
     max_length: Optional[int] = field(
         default=None,
         metadata={"help": ("Used by TRL for reward model training, which tries to read this parameter in init.")},
     )
+
+    # optimizer的定义
     optim: Optional[str] = field(default="rmsprop")
+
+
     remove_unused_columns: bool = field(default=False)

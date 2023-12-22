@@ -6,6 +6,7 @@
 #SBATCH --output=/fsx/h4/logs/%x-%j.out # Adjust this for your cluster
 #SBATCH --err=/fsx/h4/logs/%x-%j.err    # Adjust this for your cluster
 
+
 set -x -e
 
 source ~/.bashrc

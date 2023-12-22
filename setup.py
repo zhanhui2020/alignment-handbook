@@ -23,6 +23,7 @@ from setuptools import find_packages, setup
 
 
 # Remove stale alignment.egg-info directory to avoid https://github.com/pypa/pip/issues/5466
+# 删除相关的alignment.egg-info的信息
 stale_egg_info = Path(__file__).parent / "alignment.egg-info"
 if stale_egg_info.exists():
     print(
@@ -40,6 +41,7 @@ if stale_egg_info.exists():
 
 # IMPORTANT: all dependencies should be listed here with their version requirements, if any.
 #   * If a dependency is fast-moving (e.g. transformers), pin to the exact version
+# 所有依赖的环境包以及版本号
 _deps = [
     "accelerate==0.23.0",
     "bitsandbytes==0.41.2.post2",
@@ -75,6 +77,7 @@ _deps = [
 # packaging: "packaging"
 #
 # some of the values are versioned whereas others aren't.
+# 返回结果：{'accelerate': 'accelerate==0.23.0', 'bitsandbytes': 'bitsandbytes==0.41.2.post2', 'black': 'black==23.1.0', 'datasets': 'datasets==2.14.6', 'deepspeed': 'deepspeed==0.12.2', 'einops': 'einops>=0.6.1', 'evaluate': 'evaluate==0.4.0', 'flake8': 'flake8>=6.0.0', 'hf-doc-builder': 'hf-doc-builder>=0.4.0', 'huggingface-hub': 'huggingface-hub>=0.14.1,<1.0', 'isort': 'isort>=5.12.0', 'ninja': 'ninja>=1.11.1', 'numpy': 'numpy>=1.24.2', 'packaging': 'packaging>=23.0', 'parameterized': 'parameterized>=0.9.0', 'peft': 'peft==0.6.1', 'protobuf': 'protobuf<=3.20.2', 'pytest': 'pytest', 'safetensors': 'safetensors>=0.3.3', 'scipy': 'scipy', 'tensorboard': 'tensorboard', 'torch': 'torch==2.1.0', 'transformers': 'transformers==4.35.0', 'trl': 'trl==0.7.4', 'jinja2': 'jinja2>=3.0.0', 'tqdm': 'tqdm>=4.64.1'}
 deps = {b: a for a, b in (re.findall(r"^(([^!=<>~ \[\]]+)(?:\[[^\]]+\])?(?:[!=<>~ ].*)?$)", x)[0] for x in _deps)}
 
 
@@ -82,6 +85,7 @@ def deps_list(*pkgs):
     return [deps[pkg] for pkg in pkgs]
 
 
+# extras的结果：{'tests': ['pytest', 'parameterized>=0.9.0'], 'torch': ['torch==2.1.0'], 'quality': ['black==23.1.0', 'isort>=5.12.0', 'flake8>=6.0.0'], 'docs': ['hf-doc-builder>=0.4.0'], 'dev': ['hf-doc-builder>=0.4.0', 'black==23.1.0', 'isort>=5.12.0', 'flake8>=6.0.0', 'pytest', 'parameterized>=0.9.0']}
 extras = {}
 extras["tests"] = deps_list("pytest", "parameterized")
 extras["torch"] = deps_list("torch")
@@ -112,6 +116,8 @@ install_requires = [
     deps["trl"],
 ]
 
+
+# 使用setup将所有的配置包都声明进去，就可以在外面直接进行pip install .进行配置环境了
 setup(
     name="alignment-handbook",
     version="0.2.0.dev0",  # expected format is one of x.y.z.dev0, or x.y.z.rc1 or x.y.z (no to dashes, yes to dots)
